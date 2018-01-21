@@ -1,0 +1,17 @@
+[LaunchMe]
+if(run.LoadOC(OriginLab/nlsf_utils.c, 16) != 0)
+type -b "nlsf_utils.c was not loaded";
+
+	int result = run.LoadOC(%YFittingProject/Untitled.ocw, 1|2|16);
+if(result == 0)
+{
+	DoMultiNLFitDlg();
+}
+else
+{
+	if(result == 1)
+		type -b "File was not found. ";
+	else if(result == 2)
+		type -b "File was found and loaded into the current workspace, but the compiling or linking failed.";
+}
+return 0;

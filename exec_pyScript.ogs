@@ -1,0 +1,7 @@
+[LaunchMe]
+//type -b "ok";
+run -pyf "%YFittingProject\scripts\start_script.py";
+//res = run.python(startPath$, 2);
+//type -b res$;
+//{dlgfile g:="*.py;*.pyc" m:=1 init:= initPath$;}
+//run - pyf "%(dlgFile.fname$)";

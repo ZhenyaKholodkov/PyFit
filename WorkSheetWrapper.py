@@ -2,9 +2,14 @@
 Class WorkSheetWrapper
 '''
 
+from scipy import signal
 from enum import Enum
 from numpy import array
 import PyOrigin
+
+class FilterType(Enum):
+    LFilter = 0
+    FILTFILT = 1
 
 class ColumnType(Enum):
     ColumnType_Y = 0
@@ -48,6 +53,14 @@ class WorkSheetWrapper:
         return array(self._colData[0])
 
     def get_y_data(self):
+        '''b, a = signal.butter(3, 0.5)
+        print(b)
+        print(a)
+        y_dataset = []
+        for y in self._colData[1:len(self._colData)]:
+            #zi = signal.lfilter_zi(b, a)
+            y_dataset.append(signal.lfilter(b, a, y))
+        return array(y_dataset)'''
         return array(self._colData[1:len(self._colData)])
 
     def set_data_column(self, data, column):

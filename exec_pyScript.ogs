@@ -1,6 +1,6 @@
 [LaunchMe]
 //type -b "ok";
-run -pyf "%YFittingProject\scripts\start_script.py";
+run -pyf "%YFittingProject\scripts\orgn_fitting_dialog.py";
 //res = run.python(startPath$, 2);
 //type -b res$;
 //{dlgfile g:="*.py;*.pyc" m:=1 init:= initPath$;}

@@ -1,13 +1,13 @@
 import sys
 import PyOrigin
-# exec(open(r'C:\OriginUserFolder\FittingProject\scripts\orgn_fitting_dialog.py').read())
+# exec(open(r'C:\OriginUserFolder\PyFit\scripts\orgn_fitting_dialog.py').read())
 # append path to packages
-pck_path = PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "FittingProject\site-packages"
+pck_path = PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\site-packages"
 sys.path.append(pck_path)
 
 import os
 os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = PyOrigin.GetPath(
-    PyOrigin.PATHTYPE_USER) + "FittingProject\site-packages\PyQt5\plugins\platforms"
+    PyOrigin.PATHTYPE_USER) + "PyFit\site-packages\PyQt5\plugins\platforms"
 import matplotlib
 import numpy as np
 matplotlib.use('Qt5Agg', force=True)
@@ -21,14 +21,14 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 #from pympler.tracker import SummaryTracker
 
-exec (open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "FittingProject\scripts\orgn_peak_finder.py").read())
-exec (open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "FittingProject\scripts\orgn_fitter.py").read())
-exec (open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "FittingProject\scripts\orgn_settings.py").read())
+exec (open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts\orgn_peak_finder.py").read())
+exec (open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts\orgn_fitter.py").read())
+exec (open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts\orgn_settings.py").read())
 
 
 def write(fit_params, fit_data):
-    fit_params_file = open('C:\OriginUserFolder\FittingProject\scripts/fit_params_orgn.txt', 'wb')
-    fit_data_file = open('C:\OriginUserFolder\FittingProject\scripts/fit_data_orgn.txt', 'wb')
+    fit_params_file = open('C:\OriginUserFolder\PyFit\scripts/fit_params_orgn.txt', 'wb')
+    fit_data_file = open('C:\OriginUserFolder\PyFit\scripts/fit_data_orgn.txt', 'wb')
     pickle.dump(fit_params, fit_params_file)
     pickle.dump(fit_data, fit_data_file)
     fit_data_file.close()
@@ -36,8 +36,8 @@ def write(fit_params, fit_data):
 
 
 def read():
-    fit_params_file = open('C:\OriginUserFolder\FittingProject\scripts/fit_params_orgn.txt', 'rb')
-    fit_data_file = open('C:\OriginUserFolder\FittingProject\scripts/fit_data_orgn.txt', 'rb')
+    fit_params_file = open('C:\OriginUserFolder\PyFit\scripts/fit_params_orgn.txt', 'rb')
+    fit_data_file = open('C:\OriginUserFolder\PyFit\scripts/fit_data_orgn.txt', 'rb')
     fit_params = pickle.load(fit_params_file)
     fit_data = pickle.load(fit_data_file)
     fit_data_file.close()
@@ -124,7 +124,7 @@ class Window(QtWidgets.QDialog):
         # this is the Navigation widget
         # it takes the Canvas widget and a parent
         self.toolbar = OrgnToolbar(self.canvas, self)
-        images_path = PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "FittingProject/res/"
+        images_path = PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit/res/"
         self.toolbar.addSeparator()
         self.toolbar.add_button(images_path + "play_anim.png", "Animate", self.animate_peaks)
         self.toolbar.add_button(images_path + "stop_anim.png", "Stop Animate", self.stop_animate_peaks)
@@ -233,7 +233,6 @@ class Window(QtWidgets.QDialog):
     def find_peaks(self):
         self.indexes, self.max_amplitude = find_peaks(self.wks_wrapper, self.settings.peak_function, mph=self.settings.min_amplitude,
                                   mpd=self.settings.min_peak_dist, threshold=self.settings.threshold)
-
         self.cb.clear()
         self.cb.setEnabled(False)
         self.animation_box_container.setEnabled(True)
@@ -263,10 +262,9 @@ class Window(QtWidgets.QDialog):
             print(inst)
             print(type(inst))
             QMessageBox.about(self, "Fit error", str(inst))
-            raise inst
+            #raise inst
 
     def fit(self):
-        print(self.indexes[0])
         self.fit_thread = OrgnFitterThread(self,
                                       self.wks_wrapper,
                                       self.indexes, self.settings)
@@ -287,12 +285,14 @@ class Window(QtWidgets.QDialog):
         self.last_fit_params = fit_params
         self.last_fit_data = fit_data
         self.cb.addItem("Fitting data set")
-        for param in fit_params.keys():
+        for param in sorted(fit_params):
             self.cb.addItem(param)
         self.cb.setEnabled(True)
         self.on_combobox_changed(0)
 
     def on_combobox_changed(self, i):
+        if i is -1:
+            return
         self.animator.clear()
         if i is 0:
             self.animator.set_y_lim((0, 1.1 * self.max_amplitude))

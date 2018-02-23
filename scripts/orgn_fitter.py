@@ -1,14 +1,17 @@
 import sys
 import PyOrigin
-# exec(open(r'C:\OriginUserFolder\FittingProject\scripts\.py').read())
+# exec(open(r'C:\OriginUserFolder\PyFit\scripts\.py').read())
 # append path to packages
-pck_path = PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "FittingProject\site-packages"
+pck_path = PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\site-packages"
 sys.path.append(pck_path)
 ##########################
 import threading
 from PyQt5.QtCore import QThread, QObject, pyqtSignal
 from collections import defaultdict
-from lmfit.models import GaussianModel, LorentzianModel
+from lmfit.models import GaussianModel, LorentzianModel, VoigtModel, MoffatModel, Pearson7Model, \
+                         StudentsTModel, BreitWignerModel, LognormalModel, DampedOscillatorModel, \
+                         DampedHarmonicOscillatorModel, ExponentialGaussianModel, SkewedGaussianModel, \
+                         DonaichModel
 
 
 def create_model(model, prefix):
@@ -16,6 +19,28 @@ def create_model(model, prefix):
         return GaussianModel(prefix=prefix)
     elif model is Model.LORENTZ:
         return LorentzianModel(prefix=prefix)
+    elif model is Model.VOIGT:
+        return VoigtModel(prefix=prefix)
+    elif model is Model.MOFFAT:
+        return MoffatModel(prefix=prefix)
+    elif model is Model.PEARSON7:
+        return Pearson7Model(prefix=prefix)
+    elif model is Model.STUDENTST:
+        return StudentsTModel(prefix=prefix)
+    elif model is Model.BREITWIGNER:
+        return BreitWignerModel(prefix=prefix)
+    elif model is Model.LOGNORMAL:
+        return LognormalModel(prefix=prefix)
+    elif model is Model.DAMPEDOCSILLATOR:
+        return DampedOscillatorModel(prefix=prefix)
+    elif model is Model.DAMPEDHARMONICOCSILLATOR:
+        return DampedHarmonicOscillatorModel(prefix=prefix)
+    elif model is Model.EXPONENTIALGAUSSIAN:
+        return ExponentialGaussianModel(prefix=prefix)
+    elif model is Model.SKEWEDGAUSSIAN:
+        return SkewedGaussianModel(prefix=prefix)
+    elif model is Model.DONAICH:
+        return DonaichModel(prefix=prefix)
     else:
         return GaussianModel(prefix=prefix)
 
@@ -100,7 +125,6 @@ class OrgnFitterThread(QThread):
                 # if new peak was found
                 if is_new_ind:
                     # create model for new peaks
-                    print("add model = {}\n".format(last_prefix))
                     prefix_str = 'g{}_'.format(last_prefix)
                     last_prefix += 1
                     cur_model = create_model(self.model_name, prefix=prefix_str)

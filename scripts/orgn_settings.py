@@ -1,6 +1,6 @@
 import sys
 import PyOrigin
-pck_path = PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "FittingProject\site-packages"
+pck_path = PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\site-packages"
 sys.path.append(pck_path)
 from PyQt5.QtGui import QIntValidator, QDoubleValidator
 from PyQt5.QtWidgets import QApplication, QSlider, QHBoxLayout, QVBoxLayout, QPushButton, QProgressBar, \
@@ -15,6 +15,17 @@ class PeakFunction(Enum):
 class Model(Enum):
     GAUSSIAN = 0
     LORENTZ = 1
+    VOIGT = 2
+    MOFFAT = 3
+    PEARSON7 = 4
+    STUDENTST = 5
+    BREITWIGNER = 6
+    LOGNORMAL = 7
+    DAMPEDOCSILLATOR = 8
+    DAMPEDHARMONICOCSILLATOR = 9
+    EXPONENTIALGAUSSIAN = 10
+    SKEWEDGAUSSIAN = 11
+    DONAICH = 12
 
 
 class Setting:
@@ -22,7 +33,7 @@ class Setting:
         self.model = Model.GAUSSIAN
         self.min_peak_dist = 10
         self.min_amplitude = 500
-        self.threshold = 0.05
+        self.threshold = 0.06
         self.peak_function = PeakFunction.PEAK_UTILS
         self.animation_interval = 100
 
@@ -49,6 +60,17 @@ class SettingsDialog(QtWidgets.QDialog):
         self.cb.currentIndexChanged.connect(self.__on_combobox_changed)
         self.cb.addItem("Gaussian's Model")
         self.cb.addItem("Lorentz's Model")
+        self.cb.addItem("Voigt's Model")
+        self.cb.addItem("Moffat's Model")
+        self.cb.addItem("Pearson7 Model")
+        self.cb.addItem("StudentsT Model")
+        self.cb.addItem("BreitWigner Model")
+        self.cb.addItem("Lognormal Model")
+        self.cb.addItem("DampedOcsillator Model")
+        self.cb.addItem("DampedHarmonicOcsillator Model")
+        self.cb.addItem("ExponentialGaussian Model")
+        self.cb.addItem("SkewedGaussian Model")
+        self.cb.addItem("Donaich Model")
         self.current_index = settings.model.value
         self.cb.setCurrentIndex(self.current_index)
         model_box.addWidget(self.lbl1)

@@ -1,11 +1,11 @@
 import sys
-pck_path = PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "FittingProject\site-packages"
+pck_path = PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\site-packages"
 sys.path.append(pck_path)
-octave_path = PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "FittingProject\site-packages\octave_kernel-0.28.3-py3.3.egg"
+octave_path = PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\site-packages\octave_kernel-0.28.3-py3.3.egg"
 sys.path.append(octave_path)
-exec (open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "FittingProject\scripts\WorkSheetWrapper.py").read())
-exec (open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "FittingProject\scripts\detect_peaks.py").read())
-exec (open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "FittingProject\scripts\peakdetect.py").read())
+exec (open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts\WorkSheetWrapper.py").read())
+exec (open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts\detect_peaks.py").read())
+exec (open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts\peakdetect.py").read())
 
 import matplotlib
 
@@ -36,12 +36,15 @@ class OrgnPlotAnimator():
         self.y_dataset_point = y_dataset_point
         self.peak_indexes = peak_indexes
         self.changed_data_callback = changed_data_callback
+        self.line, = self.ax.plot(self.x_line, self.y_dataset_line[0], 'k')
+        self.line_points = None
+        self.line_ind = None
 
         self.cur_y_ind = 0
         self.add_lines()
 
     def add_lines(self):
-        if len(self.x_line) > 0 and len(self.y_dataset_line) > 0:
+        if 0 < len(self.x_line) and len(self.y_dataset_line) > 0 and len(self.x_line) == len(self.y_dataset_line[0]):
             self.line, = self.ax.plot(self.x_line, self.y_dataset_line[0], 'k')
         if self.x_point is not None:
             self.line_points, = self.ax.plot(self.x_point, self.y_dataset_point[0], 'bo')

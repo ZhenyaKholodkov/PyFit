@@ -39,6 +39,8 @@ class OrgnPlotAnimator():
         self.line, = self.ax.plot(self.x_line, self.y_dataset_line[0], 'k')
         self.line_points = None
         self.line_ind = None
+        self.lines = []
+        self.possible_colors = ['b--', 'g--', 'r--', 'c--', 'm--', 'y--', 'w--']
 
         self.cur_y_ind = 0
         self.add_lines()
@@ -52,6 +54,18 @@ class OrgnPlotAnimator():
             self.line_ind, = self.ax.plot(self.x_line[self.peak_indexes[0]],
                                           self.y_dataset_line[0][self.peak_indexes[0]],
                                           'r+', ms=5, mew=2)
+
+    def add_line(self, x, y, color_options):
+        line, = self.ax.plot(x, y, color_options, ms=5, mew=2)
+        self.lines.append(line)
+
+    def remove_lines(self):
+        for line in self.lines:
+            if line in self.ax.lines:
+                self.ax.lines.remove(line)
+                del line
+        self.lines.clear()
+        self.ax.relim()
 
     def clear(self):
         self.ax.clear()

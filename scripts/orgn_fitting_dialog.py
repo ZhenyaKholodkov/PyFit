@@ -4,6 +4,7 @@ import PyOrigin
 # append path to packages
 pck_path = PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\site-packages"
 sys.path.append(pck_path)
+sys.path.append(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts")
 
 import os
 os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = PyOrigin.GetPath(
@@ -26,23 +27,29 @@ exec (open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts\orgn_fitter
 exec (open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts\orgn_settings.py").read())
 
 
-def write(fit_params, fit_data):
-    fit_params_file = open('C:\OriginUserFolder\PyFit\scripts/fit_params_orgn.txt', 'wb')
-    fit_data_file = open('C:\OriginUserFolder\PyFit\scripts/fit_data_orgn.txt', 'wb')
+def write(fit_params, fit_data, component_data):
+    fit_params_file = open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + 'PyFit\scripts/fit_params_orgn.txt', 'wb')
+    fit_data_file = open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + 'PyFit\scripts/fit_data_orgn.txt', 'wb')
+    component_data_file = open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + 'PyFit\scripts/component_data_orgn.txt', 'wb')
     pickle.dump(fit_params, fit_params_file)
     pickle.dump(fit_data, fit_data_file)
+    pickle.dump(component_data, component_data_file)
     fit_data_file.close()
     fit_params_file.close()
+    component_data_file.close()
 
 
 def read():
-    fit_params_file = open('C:\OriginUserFolder\PyFit\scripts/fit_params_orgn.txt', 'rb')
-    fit_data_file = open('C:\OriginUserFolder\PyFit\scripts/fit_data_orgn.txt', 'rb')
+    fit_params_file = open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + 'PyFit\scripts/fit_params_orgn.txt', 'rb')
+    fit_data_file = open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + 'PyFit\scripts/fit_data_orgn.txt', 'rb')
+    component_data_file = open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + 'PyFit\scripts/component_data_orgn.txt', 'rb')
     fit_params = pickle.load(fit_params_file)
     fit_data = pickle.load(fit_data_file)
+    component_data = pickle.load(component_data_file)
     fit_data_file.close()
     fit_params_file.close()
-    return fit_params, fit_data
+    component_data_file.close()
+    return fit_params, fit_data, component_data
 
 
 # progress bar that shows the progress of fitting. Thread-safe Mechanism of signals and slots allow to get
@@ -94,16 +101,20 @@ class Window(QtWidgets.QDialog):
 
         self.settings = Setting()
         self.wks_wrapper = WorkSheetWrapper(PyOrigin.WorksheetPages(PyOrigin.ActivePage().GetName()).Layers(0))
+        if len(self.wks_wrapper.get_x()) is 0:
+            raise ValueError('Worksheet is empty.')
 
         self.indexes = []
         self.peaks = []
         self.last_fit_params = {}
         self.last_fit_data = []
+        self.last_component_data = []
         self.progress_dlg = None
         self.fit_thread = None
         self.current_data = 0
         self.max_amplitude = 0
         self.can_set_peak = False
+        self.is_fir_result_showed = False
 
         # a figure instance to plot on
         y_dataset = self.wks_wrapper.get_y_data()
@@ -186,11 +197,18 @@ class Window(QtWidgets.QDialog):
 
         fit_data_sheet.set_data_column(self.wks_wrapper.get_x(), 0)
         fit_data_sheet.delete_col(1)
+        num = 1
         for i, data in enumerate(self.last_fit_data):
-            num = i + 1
             name = str(num)
             fit_data_sheet.add_col(num, name)
             fit_data_sheet.set_data_column(data, num)
+            if i < len(self.last_component_data):
+                for j, component in enumerate(self.last_component_data[i]):
+                    num = num + 1
+                    name = "component_{}".format(j)
+                    fit_data_sheet.add_col(num, name)
+                    fit_data_sheet.set_data_column(component.tolist(), num)
+            num = num + 1
 
         fit_params_sheet.set_data_column(self.wks_wrapper.get_x_from_comments(), 0)
         fit_params_sheet.delete_col(1)
@@ -234,6 +252,7 @@ class Window(QtWidgets.QDialog):
         self.indexes, self.max_amplitude = find_peaks(self.wks_wrapper, self.settings.peak_function, mph=self.settings.min_amplitude,
                                   mpd=self.settings.min_peak_dist, threshold=self.settings.threshold)
         self.cb.clear()
+        self.is_fir_result_showed = False
         self.cb.setEnabled(False)
         self.animation_box_container.setEnabled(True)
         # show peaks
@@ -253,8 +272,8 @@ class Window(QtWidgets.QDialog):
             self.fit_thread.stop_fit()
 
     def fitting_finished(self):
-        write(self.fit_thread.fit_params, self.fit_thread.fit_data)
-        self.show_fit_result(self.fit_thread.fit_params, self.fit_thread.fit_data)
+        write(self.fit_thread.fit_params, self.fit_thread.fit_data, self.fit_thread.component_data)
+        self.show_fit_result(self.fit_thread.fit_params, self.fit_thread.fit_data, self.fit_thread.component_data)
 
     def fitting_exception_occur(self, inst):
         if inst is not None:
@@ -281,14 +300,16 @@ class Window(QtWidgets.QDialog):
 
         self.progress_dlg.exec_()
 
-    def show_fit_result(self, fit_params, fit_data):
+    def show_fit_result(self, fit_params, fit_data, component_data):
         self.last_fit_params = fit_params
         self.last_fit_data = fit_data
+        self.last_component_data = component_data
         self.cb.addItem("Fitting data set")
         for param in sorted(fit_params):
             self.cb.addItem(param)
         self.cb.setEnabled(True)
         self.on_combobox_changed(0)
+        self.is_fir_result_showed = True
 
     def on_combobox_changed(self, i):
         if i is -1:
@@ -300,6 +321,11 @@ class Window(QtWidgets.QDialog):
             self.animator.set_line_y_dataset(self.last_fit_data)
             self.animator.show_plots_with(0)
             self.animation_box_container.setEnabled(True)
+            for i, peak_contour in enumerate(self.last_component_data[0]):
+                color = self.animator.possible_colors[0]
+                if len(self.animator.possible_colors) > i:
+                    color = self.animator.possible_colors[i]
+                self.animator.add_line(self.wks_wrapper.get_x(), peak_contour, color)
         else:
             param = self.cb.currentText()
             self.animator.set_line_x_data(self.wks_wrapper.get_x_from_comments())#self.last_fit_params[param[0:3] + 'x'])
@@ -337,30 +363,38 @@ class Window(QtWidgets.QDialog):
 
     def on_slider_value_changed(self):
         # print(self.anim_slider.value())
+        self.animator.remove_lines()
         self.current_data = self.anim_slider.value()
         self.animator.show_plots_with(self.current_data)
         self.anima_num_label.setText(str(self.current_data))
+        if self.is_fir_result_showed and len(self.last_component_data) > self.current_data:
+            for i, peak_contour in enumerate(self.last_component_data[self.current_data]):
+                    color = self.animator.possible_colors[0]
+                    if len(self.animator.possible_colors) > i:
+                        color = self.animator.possible_colors[i]
+                    self.animator.add_line(self.wks_wrapper.get_x(), peak_contour, color)
         self.canvas.draw()
         # self.canvas.update()
         # plt.draw()
 
     def load_last_fit(self):
-        self.last_fit_params, self.last_fit_data = read()
-        self.show_fit_result(self.last_fit_params, self.last_fit_data)
+        self.last_fit_params, self.last_fit_data, self.last_component_data = read()
+        self.show_fit_result(self.last_fit_params, self.last_fit_data, self.last_component_data)
 
 def start_app():
-    # try:
-    app = QApplication(sys.argv)
+    try:
+        app = QApplication(sys.argv)
 
-    main = Window()
-    main.show()
+        main = Window()
+        main.show()
 
-    app.exec_()
+        app.exec_()
     #main.stop_fit()
     #del main
-    # except Exception as inst:
-    #    print(type(inst))
-    #    print(inst.args)
+    except Exception as inst:
+        print(type(inst))
+        print(inst.args)
+        QMessageBox.about(None, "error", str(inst))
 
 
 if __name__ == '__main__':

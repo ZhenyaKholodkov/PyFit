@@ -6,6 +6,7 @@ pck_path = PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\site-packages"
 sys.path.append(pck_path)
 sys.path.append(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts")
 
+import math
 import os
 os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = PyOrigin.GetPath(
     PyOrigin.PATHTYPE_USER) + "PyFit\site-packages\PyQt5\plugins\platforms"
@@ -18,29 +19,44 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QSlider, QHBoxLayout, QVBoxLayout, QPushButton, QProgressBar, \
     QComboBox, QAction, QMenuBar, QLabel, QLineEdit, QPushButton, QMessageBox, QWidget
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 #from pympler.tracker import SummaryTracker
 
+exec (open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts\orgn_graph_widget.py").read())
 exec (open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts\orgn_peak_finder.py").read())
 exec (open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts\orgn_fitter.py").read())
 exec (open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts\orgn_settings.py").read())
 
+from lmfit.models import GaussianModel
 
-def write(fit_params, fit_data, component_data):
-    fit_params_file = open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + 'PyFit\scripts/fit_params_orgn.txt', 'wb')
+
+def write(fit_result):
+    fit_result_file = open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + 'PyFit\scripts/fit_result_orgn.txt', 'wb')
+    pickle.dump(fit_result, fit_result_file)
+    fit_result_file.close()
+    ''''fit_params_file = open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + 'PyFit\scripts/fit_params_orgn.txt', 'wb')
     fit_data_file = open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + 'PyFit\scripts/fit_data_orgn.txt', 'wb')
     component_data_file = open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + 'PyFit\scripts/component_data_orgn.txt', 'wb')
+    #wks_file = open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + 'PyFit\scripts/wks_orgn.txt', 'wb')
+    settings_file = open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + 'PyFit\scripts/settings_orgn.txt', 'wb')
     pickle.dump(fit_params, fit_params_file)
     pickle.dump(fit_data, fit_data_file)
     pickle.dump(component_data, component_data_file)
+    #pickle.dump(wks, wks_file)
+    pickle.dump(settings, settings_file)
     fit_data_file.close()
     fit_params_file.close()
     component_data_file.close()
+    #wks_file.close()
+    settings_file.close()'''''
 
 
 def read():
-    fit_params_file = open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + 'PyFit\scripts/fit_params_orgn.txt', 'rb')
+    fit_result_file = open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + 'PyFit\scripts/fit_result_orgn.txt', 'rb')
+    fit_result = pickle.load(fit_result_file)
+    fit_result_file.close()
+    return fit_result
+    ''''fit_params_file = open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + 'PyFit\scripts/fit_params_orgn.txt', 'rb')
     fit_data_file = open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + 'PyFit\scripts/fit_data_orgn.txt', 'rb')
     component_data_file = open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + 'PyFit\scripts/component_data_orgn.txt', 'rb')
     fit_params = pickle.load(fit_params_file)
@@ -49,7 +65,7 @@ def read():
     fit_data_file.close()
     fit_params_file.close()
     component_data_file.close()
-    return fit_params, fit_data, component_data
+    return fit_params, fit_data, component_data'''''
 
 
 # progress bar that shows the progress of fitting. Thread-safe Mechanism of signals and slots allow to get
@@ -106,9 +122,7 @@ class Window(QtWidgets.QDialog):
 
         self.indexes = []
         self.peaks = []
-        self.last_fit_params = {}
-        self.last_fit_data = []
-        self.last_component_data = []
+        self.last_fit_result = None
         self.progress_dlg = None
         self.fit_thread = None
         self.current_data = 0
@@ -118,11 +132,32 @@ class Window(QtWidgets.QDialog):
 
         # a figure instance to plot on
         y_dataset = self.wks_wrapper.get_y_data()
-        self.animator = OrgnPlotAnimator(self.wks_wrapper.get_x(), y_dataset, figsize=(20, 20), changed_data_callback=self.on_animtion_changed_data)
+        ####
+        x_data = self.wks_wrapper.get_x()
+        ''''left_d = math.sqrt((x[2] - x[3])**2 + (y_dataset[1][2] - y_dataset[0][3])**2)
+        midl_d = math.sqrt((x[3] - x[3])**2 + (y_dataset[1][3] - y_dataset[0][3])**2)
+        right_d = math.sqrt((x[4] - x[3])**2 + (y_dataset[1][4] - y_dataset[0][3])**2)
+        print(left_d)
+        print(midl_d)
+        print(right_d)
+        prefix_str = 'g_'
+        cur_model = GaussianModel(prefix=prefix_str)
+        y_data = y_dataset[0]
+        parameters = cur_model.guess(y_data, x=x_data)
+        params_dict = parameters.valuesdict()
+        if prefix_str + 'center' in params_dict:
+            parameters[prefix_str + 'center'].set(x_data[3])
+        if prefix_str + 'amplitude' in params_dict:
+            parameters[prefix_str + 'amplitude'].set(y_data[3])'''''
+
+
+        ####
+        #self.animator = OrgnPlotAnimator(self.wks_wrapper.get_x(), y_dataset, figsize=(20, 20), changed_data_callback=self.on_animtion_changed_data)
+        self.animator = OrgnGrpahWidget(figsize=(20, 20), settings=self.settings, animate_call_back=self.show_data_on_graph_with)
 
         # this is the Canvas Widget that displays the `figure`
         # it takes the `figure` instance as a parameter to __init__
-        self.canvas = FigureCanvas(self.animator.get_figure())
+        self.canvas = self.animator.get_canvas()
         self.canvas.mpl_connect('button_press_event', self.on_click)
 
         # create menu with settings
@@ -136,6 +171,9 @@ class Window(QtWidgets.QDialog):
         # it takes the Canvas widget and a parent
         self.toolbar = OrgnToolbar(self.canvas, self)
         images_path = PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit/res/"
+
+        self.toolbar.addSeparator()
+        self.toolbar.add_button(images_path + "markers.png", "Add Markers", self.add_markers)
         self.toolbar.addSeparator()
         self.toolbar.add_button(images_path + "play_anim.png", "Animate", self.animate_peaks)
         self.toolbar.add_button(images_path + "stop_anim.png", "Stop Animate", self.stop_animate_peaks)
@@ -198,12 +236,12 @@ class Window(QtWidgets.QDialog):
         fit_data_sheet.set_data_column(self.wks_wrapper.get_x(), 0)
         fit_data_sheet.delete_col(1)
         num = 1
-        for i, data in enumerate(self.last_fit_data):
+        for i, data in enumerate(self.last_fit_result.fit_data):
             name = str(num)
             fit_data_sheet.add_col(num, name)
             fit_data_sheet.set_data_column(data, num)
-            if i < len(self.last_component_data):
-                for j, component in enumerate(self.last_component_data[i]):
+            if i < len(self.last_fit_result.component_data):
+                for j, component in enumerate(self.last_fit_result.component_data[i]):
                     num = num + 1
                     name = "component_{}".format(j)
                     fit_data_sheet.add_col(num, name)
@@ -248,6 +286,17 @@ class Window(QtWidgets.QDialog):
         settings_dlg.peak_settings_changed.connect(self.find_peaks)
         settings_dlg.show()
 
+    def add_markers(self):
+        if self.is_fir_result_showed:
+            return
+        
+        if self.animator.is_ver_markers_shown():
+            self.animator.hide_ver_markers()
+            return
+
+        x = self.wks_wrapper.get_x()
+        self.animator.show_ver_markers(x[0], x[len(x) - 1], 0, self.max_amplitude)
+
     def find_peaks(self):
         self.indexes, self.max_amplitude = find_peaks(self.wks_wrapper, self.settings.peak_function, mph=self.settings.min_amplitude,
                                   mpd=self.settings.min_peak_dist, threshold=self.settings.threshold)
@@ -256,15 +305,11 @@ class Window(QtWidgets.QDialog):
         self.cb.setEnabled(False)
         self.animation_box_container.setEnabled(True)
         # show peaks
-        self.animator.clear()
         self.animator.set_title('Peak finding')
+        self.show_data_on_graph_with(0)
+        self.animator.autoscale()
+        self.animator.autoscale(False)
         self.animator.set_y_lim((0, 1.1 * self.max_amplitude))
-        self.animator.set_line_x_data(self.wks_wrapper.get_x())
-        self.animator.set_line_y_dataset(self.wks_wrapper.get_y_data())
-        self.animator.set_point_data(self.wks_wrapper.get_x(), self.wks_wrapper.get_y_data())
-        self.animator.set_peak_indexes(self.indexes)
-        self.animator.add_lines()
-        self.animator.show_plots_with(0)
         self.canvas.draw()
 
     def stop_fit(self):
@@ -272,8 +317,8 @@ class Window(QtWidgets.QDialog):
             self.fit_thread.stop_fit()
 
     def fitting_finished(self):
-        write(self.fit_thread.fit_params, self.fit_thread.fit_data, self.fit_thread.component_data)
-        self.show_fit_result(self.fit_thread.fit_params, self.fit_thread.fit_data, self.fit_thread.component_data)
+        write(self.fit_thread.fit_result)
+        self.show_fit_result(self.fit_thread.fit_result)
 
     def fitting_exception_occur(self, inst):
         if inst is not None:
@@ -285,8 +330,8 @@ class Window(QtWidgets.QDialog):
 
     def fit(self):
         self.fit_thread = OrgnFitterThread(self,
-                                      self.wks_wrapper,
-                                      self.indexes, self.settings)
+                                           self.wks_wrapper, self.indexes,
+                                           self.settings)
         self.progress_dlg = ProgressDialog(self)
 
         self.progress_dlg.accepted.connect(self.fit_thread.stop_fit)
@@ -300,38 +345,40 @@ class Window(QtWidgets.QDialog):
 
         self.progress_dlg.exec_()
 
-    def show_fit_result(self, fit_params, fit_data, component_data):
-        self.last_fit_params = fit_params
-        self.last_fit_data = fit_data
-        self.last_component_data = component_data
+    def show_fit_result(self, fit_result):
+        self.animator.hide_ver_markers()
+        self.last_fit_result = fit_result
+        for param_name, params in self.last_fit_result.fit_params.items():
+            if "amplitude" in param_name:
+                max_element = max(params)
+                if self.max_amplitude < max_element:
+                    self.max_amplitude = max_element
+
         self.cb.addItem("Fitting data set")
-        for param in sorted(fit_params):
+        for param in sorted(self.last_fit_result.fit_params):
             self.cb.addItem(param)
         self.cb.setEnabled(True)
-        self.on_combobox_changed(0)
         self.is_fir_result_showed = True
+        self.on_combobox_changed(0)
 
     def on_combobox_changed(self, i):
         if i is -1:
             return
-        self.animator.clear()
         if i is 0:
-            self.animator.set_y_lim((0, 1.1 * self.max_amplitude))
-            self.animator.set_line_x_data(self.wks_wrapper.get_x())
-            self.animator.set_line_y_dataset(self.last_fit_data)
-            self.animator.show_plots_with(0)
             self.animation_box_container.setEnabled(True)
-            for i, peak_contour in enumerate(self.last_component_data[0]):
-                color = self.animator.possible_colors[0]
-                if len(self.animator.possible_colors) > i:
-                    color = self.animator.possible_colors[i]
-                self.animator.add_line(self.wks_wrapper.get_x(), peak_contour, color)
+            self.show_data_on_graph_with(0)
+            self.animator.autoscale()
+            self.animator.autoscale(False)
+            self.animator.set_y_lim((0, 1.1 * self.max_amplitude))
         else:
             param = self.cb.currentText()
-            self.animator.set_line_x_data(self.wks_wrapper.get_x_from_comments())#self.last_fit_params[param[0:3] + 'x'])
-            self.animator.set_line_y_dataset([self.last_fit_params[param]])
+            self.animator.remove_lines()
+            self.animator.add_line(self.last_fit_result.x_param,
+                                   self.last_fit_result.fit_params[param], 'k')
+
+            self.animator.set_y_lim((0, max(self.last_fit_result.fit_params[param])))
             self.animation_box_container.setEnabled(False)
-        self.animator.add_lines()
+            self.animator.autoscale()
         self.canvas.draw()
 
     def animate_peaks(self):
@@ -345,12 +392,33 @@ class Window(QtWidgets.QDialog):
         self.anima_num_label.setText(str(self.current_data))
         self.anim_slider.setValue(self.current_data)
 
+    def show_data_on_graph_with(self, i):
+        self.animator.remove_lines()
+        if self.is_fir_result_showed and i < len(self.last_fit_result.fit_data):
+            self.anim_slider.setValue(i)
+            x_data = self.last_fit_result.x_data
+            if len(x_data) != len(self.last_fit_result.fit_data[i]):
+                return
+            self.animator.add_line(x_data, self.last_fit_result.fit_data[i], 'k')
+            if len(self.last_fit_result.component_data) > i:
+                for ii, peak_contour in enumerate(self.last_fit_result.component_data[i]):
+                        color = self.animator.possible_colors[0]
+                        if len(self.animator.possible_colors) > ii:
+                            color = self.animator.possible_colors[ii]
+                        self.animator.add_line(x_data, peak_contour, color)
+        else:
+            self.animator.add_line(self.wks_wrapper.get_x(), self.wks_wrapper.get_y_data()[i], 'k')
+            self.animator.add_line(self.wks_wrapper.get_x(), self.wks_wrapper.get_y_data()[i], 'bo')
+            self.animator.add_line(self.wks_wrapper.get_x()[self.indexes[i]],
+                                   self.wks_wrapper.get_y_data()[i][self.indexes[i]], 'r+')
+        self.canvas.draw()
+
     def on_next_anim(self):
         if self.current_data < self.wks_wrapper.get_column_num():
             self.current_data += 1
             self.anima_num_label.setText(str(self.current_data))
             self.anim_slider.setValue(self.current_data)
-            self.animator.show_plots_with(self.current_data)
+            self.show_data_on_graph_with(self.current_data)
             self.canvas.draw()
 
     def on_prev_anim(self):
@@ -358,28 +426,20 @@ class Window(QtWidgets.QDialog):
             self.current_data -= 1
             self.anima_num_label.setText(str(self.current_data))
             self.anim_slider.setValue(self.current_data)
-            self.animator.show_plots_with(self.current_data)
+            self.show_data_on_graph_with(self.current_data)
             self.canvas.draw()
 
     def on_slider_value_changed(self):
         # print(self.anim_slider.value())
-        self.animator.remove_lines()
         self.current_data = self.anim_slider.value()
-        self.animator.show_plots_with(self.current_data)
+        self.show_data_on_graph_with(self.current_data)
         self.anima_num_label.setText(str(self.current_data))
-        if self.is_fir_result_showed and len(self.last_component_data) > self.current_data:
-            for i, peak_contour in enumerate(self.last_component_data[self.current_data]):
-                    color = self.animator.possible_colors[0]
-                    if len(self.animator.possible_colors) > i:
-                        color = self.animator.possible_colors[i]
-                    self.animator.add_line(self.wks_wrapper.get_x(), peak_contour, color)
-        self.canvas.draw()
         # self.canvas.update()
         # plt.draw()
 
     def load_last_fit(self):
-        self.last_fit_params, self.last_fit_data, self.last_component_data = read()
-        self.show_fit_result(self.last_fit_params, self.last_fit_data, self.last_component_data)
+        self.last_fit_result = read()
+        self.show_fit_result(self.last_fit_result)
 
 def start_app():
     try:

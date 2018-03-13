@@ -7,6 +7,29 @@ from enum import Enum
 from numpy import array
 import PyOrigin
 
+
+def find_index_of_nearest(sorted_array, number):
+    left = 0
+    right = len(sorted_array) - 1
+    middle = int(right / 2)
+    while right is not left:
+        d_left = abs(sorted_array[middle - 1] - number)
+        d_middle = abs(sorted_array[middle] - number)
+        d_right = abs(sorted_array[middle + 1] - number)
+        # check if the middle is nearest element to number
+        if d_middle < d_left and d_middle < d_right:
+            return middle
+        # get the next half of array where the nearest element is
+        if d_left < d_right:
+            left = left
+            right = middle - 1
+            middle = int((right + left) / 2)
+        else:
+            left = middle + 1
+            right = right
+            middle = int((right + left) / 2)
+    return middle
+
 class FilterType(Enum):
     LFilter = 0
     FILTFILT = 1
@@ -49,7 +72,12 @@ class WorkSheetWrapper:
     def get_column_num(self):
         return len(self._colData)
 
-    def get_x(self):
+    def get_x(self, markers=None):
+        if markers is not None and markers.is_not_none():
+            x_data = array(self._colData[0])
+            left_marker__index = find_index_of_nearest(x_data, markers.left_value)
+            right_marker__index = find_index_of_nearest(x_data, markers.right_value) + 1
+            return x_data[left_marker__index:right_marker__index]
         return array(self._colData[0])
 
     def get_y_data(self):

@@ -114,6 +114,8 @@ class OrgnPlotAnimator():
         if y_data_index >= len(self.y_dataset_line):
             return
         cur_y_data = self.y_dataset_line[y_data_index]
+        #base = peakutils.baseline(cur_y_data, 2)
+        #cur_y_data -= base
         self.line.set_xdata(self.x_line)
         self.line.set_ydata(cur_y_data)
         if self.x_point is not None:

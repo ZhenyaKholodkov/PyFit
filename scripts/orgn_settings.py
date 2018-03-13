@@ -16,12 +16,30 @@ from PyQt5.QtWidgets import QApplication, QSlider, QHBoxLayout, QVBoxLayout, QPu
     QComboBox, QAction, QMenuBar, QLabel, QLineEdit, QPushButton, QMessageBox, QGroupBox, QGridLayout, \
     QFileDialog, QListWidget, QTableWidget, QTableWidgetItem
 
+
 def str2bool(v):
     return v.lower() in ("yes", "true", "t", "1")
+
 
 class PeakFunction(Enum):
     PEAK_DETECTOR = 0
     PEAK_UTILS = 1
+
+
+class MarkerSetting:
+    def __init__(self):
+        self.left_value = None
+        self.right_value = None
+
+    def set_left_value(self, value):
+        self.left_value = value
+
+    def set_right_value(self, value):
+        self.right_value = value
+
+    def is_not_none(self):
+        return self.left_value is not None and self.right_value is not None
+
 
 class Setting:
     def __init__(self):
@@ -33,6 +51,7 @@ class Setting:
         self.animation_interval = 100
         self.algorithms = []
         self.parameters = None
+        self.markers = MarkerSetting()
 
     def set_model(self, model):
         self.model = model

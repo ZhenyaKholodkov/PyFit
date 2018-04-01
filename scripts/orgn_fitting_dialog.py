@@ -251,7 +251,7 @@ class Window(QtWidgets.QDialog):
         fit_params_sheet.set_data_column(self.wks_wrapper.get_x_from_comments(), 0)
         fit_params_sheet.delete_col(1)
         num = 1
-        for param_name, params in self.last_fit_params.items():
+        for param_name, params in self.last_fit_result.fit_params.items():
             fit_params_sheet.add_col(num, param_name)
             fit_params_sheet.set_data_column(params, num)
             num += 1
@@ -273,9 +273,7 @@ class Window(QtWidgets.QDialog):
             else:
                 self.indexes[self.current_data] = np.append(self.indexes[self.current_data], ind)
                 self.indexes[self.current_data].sort()
-        self.animator.set_peak_indexes(self.indexes)
-        self.animator.show_plots_with(self.current_data)
-        self.canvas.draw()
+        self.show_data_on_graph_with(self.current_data)
         self.can_set_peak = False
         #QApplication.setOverrideCursor(QCursor(Qt.ArrowCursor))
         QApplication.restoreOverrideCursor()
@@ -346,6 +344,7 @@ class Window(QtWidgets.QDialog):
         self.progress_dlg.exec_()
 
     def show_fit_result(self, fit_result):
+        print(fit_result)
         self.animator.hide_ver_markers()
         self.last_fit_result = fit_result
         for param_name, params in self.last_fit_result.fit_params.items():
@@ -373,7 +372,7 @@ class Window(QtWidgets.QDialog):
         else:
             param = self.cb.currentText()
             self.animator.remove_lines()
-            self.animator.add_line(self.last_fit_result.x_param,
+            self.animator.add_line(self.last_fit_result.x_param[:len(self.last_fit_result.fit_params[param])],
                                    self.last_fit_result.fit_params[param], 'k')
 
             self.animator.set_y_lim((0, max(self.last_fit_result.fit_params[param])))
@@ -394,19 +393,23 @@ class Window(QtWidgets.QDialog):
 
     def show_data_on_graph_with(self, i):
         self.animator.remove_lines()
-        if self.is_fir_result_showed and i < len(self.last_fit_result.fit_data):
-            self.anim_slider.setValue(i)
-            x_data = self.last_fit_result.x_data
-            if len(x_data) != len(self.last_fit_result.fit_data[i]):
-                return
-            self.animator.add_line(x_data, self.last_fit_result.fit_data[i], 'k')
-            if len(self.last_fit_result.component_data) > i:
-                for ii, peak_contour in enumerate(self.last_fit_result.component_data[i]):
-                        color = self.animator.possible_colors[0]
-                        if len(self.animator.possible_colors) > ii:
-                            color = self.animator.possible_colors[ii]
-                        self.animator.add_line(x_data, peak_contour, color)
+        if self.is_fir_result_showed:
+            if i < len(self.last_fit_result.fit_data):
+                self.anim_slider.setValue(i)
+                x_data = self.last_fit_result.x_data
+                if len(x_data) != len(self.last_fit_result.fit_data[i]):
+                    return
+                self.animator.add_line(x_data, self.last_fit_result.fit_data[i], 'k')
+                if len(self.last_fit_result.component_data) > i:
+                    for ii, peak_contour in enumerate(self.last_fit_result.component_data[i]):
+                            color = self.animator.possible_colors[0]
+                            if len(self.animator.possible_colors) > ii:
+                                color = self.animator.possible_colors[ii]
+                            self.animator.add_line(x_data, peak_contour, color)
         else:
+            if len(self.wks_wrapper.get_y_data()) <= i:
+                print("error. show_data_on_graph_with() data index is out of bounds")
+                return
             self.animator.add_line(self.wks_wrapper.get_x(), self.wks_wrapper.get_y_data()[i], 'k')
             self.animator.add_line(self.wks_wrapper.get_x(), self.wks_wrapper.get_y_data()[i], 'bo')
             self.animator.add_line(self.wks_wrapper.get_x()[self.indexes[i]],
@@ -414,7 +417,8 @@ class Window(QtWidgets.QDialog):
         self.canvas.draw()
 
     def on_next_anim(self):
-        if self.current_data < self.wks_wrapper.get_column_num():
+        print(self.wks_wrapper.get_column_num())
+        if self.current_data < self.wks_wrapper.get_column_num() - 2:
             self.current_data += 1
             self.anima_num_label.setText(str(self.current_data))
             self.anim_slider.setValue(self.current_data)

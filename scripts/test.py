@@ -1,53 +1,117 @@
-def find_index_of_nearest(sorted_array, number):
-    left = 0
-    right = len(sorted_array) - 1
-    middle = right / 2
-    while right is not left:
-        d_left = abs(sorted_array[middle - 1] - number)
-        d_middle = abs(sorted_array[middle] - number)
-        d_right = abs(sorted_array[middle + 1] - number)
-        # check if the middle is nearest element to number
-        if d_middle < d_left and d_middle < d_right:
-            return middle
-        # get the next half of array where the nearest element is
-        if d_left < d_right:
-            left = left
-            right = middle - 1
-            middle = (right + left) / 2
-        else:
-            left = middle + 1
-            right = right
-            middle = (right + left) / 2
-    return middle
 
-array = [1,3,4,5,6,7,10,12,13,14,15,16,17,20,21,22,23,24,27,28,29,30]
-array_res = [1,1,1,3,4,5,6,7,7,10,10,10,12,13,14,15,16,17,17,20,20,21,22,23,24,24,27,27,28,29,30]
+from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtGui import QKeySequence
+from PyQt5.QtWidgets import QApplication, QTableWidget, QShortcut, QVBoxLayout, QTableWidgetItem
 
-for i in range(0, 31):
-    print(i)
-    res = find_index_of_nearest(array, i)
-    if array_res[i] is not array[res]:
-        print("Wrong i - {}, res - {}".format(i, array[res]))
+class WorkSheetWrapper:
+    def __init__(self, data):
+        self._colData = data
+
+    def get_x_from_comments(self):
+        return [float(value.replace(",", ".")) for value in self._colComments[1:len(self._colComments)]]
+
+    def show_data(self):
+        for data in self._colData:
+            print(data)
+
+    def get_worksheet_name(self):
+        return self._sheetName
+
+    def get_column_num(self):
+        return len(self._colData)
+
+    def get_x(self, markers=None):
+        if markers is not None and markers.is_not_none():
+            x_data = array(self._colData[0])
+            left_marker__index = find_index_of_nearest(x_data, markers.left_value)
+            right_marker__index = find_index_of_nearest(x_data, markers.right_value) + 1
+            return x_data[left_marker__index:right_marker__index]
+        return array(self._colData[0])
+
+    def get_y_data(self):
+        '''b, a = signal.butter(3, 0.5)
+        print(b)
+        print(a)
+        y_dataset = []
+        for y in self._colData[1:len(self._colData)]:
+            #zi = signal.lfilter_zi(b, a)
+            y_dataset.append(signal.lfilter(b, a, y))
+        return array(y_dataset)'''
+        return array(self._colData[1:len(self._colData)])
+
+    def set_data_column(self, data, column):
+        row = 0
+        for cell_value in data:
+            self._workSheet.SetCell(row, column, cell_value)
+            row += 1
+
+    def set_cell_value(self, data, row, col):
+        self._workSheet.SetCell(row, col, data)
+
+    def set_size(self, col_num):
+        self._workSheet.SetSize(0, col_num)
+
+    #Columns operations
+    def delete_col(self, col_num):
+        self._workSheet.DeleteCol(col_num)
+
+    def add_col(self, col_num, col_name):
+        self._workSheet.InsertCol(col_num, col_name)
+
+    def set_col_name(self, col_num, name):
+        self._workSheet.Columns(col_num).SetUserDefLabel(name)
+
+    def set_col_type(self, col_num, type):
+        self._workSheet.Columns(col_num).SetType(type)
+
+class Widget(QtWidgets.QDialog):
+    def __init__(self,parent=None):
+        QtWidgets.QDialog.__init__(self,parent)
+        # initially construct the visible table
+        self.tv=QTableWidget()
+        self.tv.setRowCount(1)
+        self.tv.setColumnCount(1)
+        self.tv.show()
+
+        # set the shortcut ctrl+v for paste
+        QShortcut(QKeySequence('Ctrl+v'),self).activated.connect(self._handlePaste)
+
+        self.layout = QVBoxLayout(self)
+        self.layout.addWidget(self.tv)
 
 
-class MarkerSetting:
-    def __init__(self):
-        self.left_value = None
-        self.right_value = None
 
-    def set_left_value(self, value):
-        self.left_value = value
+    # paste the value
+    def _handlePaste(self):
+        clipboard_text = QApplication.instance().clipboard().text()
+        print(clipboard_text)
+        rows = clipboard_text.split('\n')
+        lines = [line.split() for line in rows]
+        rows = len(lines)
+        cols = len(lines[0])
+        self.tv.setRowCount(rows)
+        self.tv.setColumnCount(cols)
+        row_i = 0
+        col_i = 0
+        for line in lines:
+            #print(line)
+            #print("\n")
+            for number in line:
+                try:
+                    item = QTableWidgetItem()
+                    item.setText(number)
+                    self.tv.setItem(col_i, row_i, item)
+                except Exception as inst:
+                    print(inst)
+                row_i += 1
+            row_i = 0
+            col_i += 1
 
-    def set_right_value(self, value):
-        self.right_value = value
 
 
-def change(sett):
-    sett.set_left_value(5)
+app = QApplication([])
 
+w = Widget()
+w.show()
 
-sett_t = MarkerSetting()
-sett_t.set_left_value(2)
-sett_t.set_right_value(8)
-change(sett_t)
-print(sett_t.left_value)
+app.exec_()

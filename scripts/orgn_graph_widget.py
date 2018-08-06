@@ -1,16 +1,15 @@
-import matplotlib
-
-matplotlib.use('Qt5Agg', force=True)
-import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
 import peakutils
 
 class OrgnGrpahWidget():
     def __init__(self, figsize, settings, animate_call_back):
         self.animate_call_back = animate_call_back
         self.figure, self.ax = plt.subplots(1, 1, figsize=figsize)
-        self.canvas = FigureCanvas(self.figure)
+
+        self.canvas = self.figure.canvas#FigureCanvas(self.figure)
         self.lines = []
         self.possible_colors = ['b--', 'g--', 'r--', 'c--', 'm--', 'y--', 'w--']
 

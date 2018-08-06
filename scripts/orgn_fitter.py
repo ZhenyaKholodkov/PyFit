@@ -1,5 +1,5 @@
 import sys
-import PyOrigin
+#import PyOrigin
 import importlib
 import inspect
 import os
@@ -8,8 +8,8 @@ from collections import OrderedDict
 import numpy as np
 # exec(open(r'C:\OriginUserFolder\PyFit\scripts\.py').read())
 # append path to packages
-pck_path = PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\site-packages"
-sys.path.append(pck_path)
+#pck_path = PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\site-packages"
+#sys.path.append(pck_path)
 ##########################
 import threading
 from PyQt5.QtCore import QThread, QObject, pyqtSignal
@@ -17,7 +17,7 @@ from collections import defaultdict
 from lmfit.models import GaussianModel, LorentzianModel, VoigtModel, MoffatModel, Pearson7Model, \
                          StudentsTModel, BreitWignerModel, LognormalModel, DampedOscillatorModel, \
                          DampedHarmonicOscillatorModel, ExponentialGaussianModel, SkewedGaussianModel, \
-                         DonaichModel, ExponentialModel, PowerLawModel, ExpressionModel
+                         DonaichModel, ExponentialModel, PowerLawModel
 
 gl_models_dictionary = OrderedDict([("Gaussian's Model", GaussianModel),
                         ("Lorentz's Model", LorentzianModel),
@@ -36,7 +36,8 @@ gl_models_dictionary = OrderedDict([("Gaussian's Model", GaussianModel),
                         ("PowerLawModel", PowerLawModel)
                         ])
 
-custom_path = PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit/scripts/CustomModels/"
+#custom_path = PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit/scripts/CustomModels/"
+custom_path = "CustomModels/"
 sys.path.append(custom_path)
 custom_models_list = listdir(custom_path)
 for c_file in custom_models_list:
@@ -45,6 +46,30 @@ for c_file in custom_models_list:
     for name, obj in inspect.getmembers(module):
         if inspect.isclass(obj):
             gl_models_dictionary[obj.__name__] = obj
+
+
+
+def find_index_of_nearest(sorted_array, number):
+    left = 0
+    right = len(sorted_array) - 1
+    middle = int(right / 2)
+    while right is not left:
+        d_left = abs(sorted_array[middle - 1] - number)
+        d_middle = abs(sorted_array[middle] - number)
+        d_right = abs(sorted_array[middle + 1] - number)
+        # check if the middle is nearest element to number
+        if d_middle < d_left and d_middle < d_right:
+            return middle
+        # get the next half of array where the nearest element is
+        if d_left < d_right:
+            left = left
+            right = middle - 1
+            middle = int((right + left) / 2)
+        else:
+            left = middle + 1
+            right = right
+            middle = int((right + left) / 2)
+    return middle
 
 
 def create_model(model, prefix):
@@ -122,7 +147,7 @@ class OrgnFitterThread(QThread):
         self.model_name = settings.model
         self.mpd = settings.min_peak_dist
         self.algorithms = settings.algorithms
-        self.parameters = settings.parameters
+        self.parameters = None# settings.parameters
         self.markers = settings.markers
 
         self.complete_locker = threading.Lock()
@@ -230,7 +255,7 @@ class OrgnFitterThread(QThread):
             # fit and append result
             if model is not None:
                 if not self.algorithms: 
-                    result = model.fit(y_data, parameters, x=self.fit_result.x_data, fit_kws={'nan_policy': 'omit'})
+                    result = model.fit(y_data, parameters, x=self.fit_result.x_data) #, fit_kws={'nan_policy': 'omit'})
                 else:
                     params = parameters
                     for alg in self.algorithms:

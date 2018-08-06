@@ -1,16 +1,22 @@
 import sys
 import importlib
-import PyOrigin
+#import PyOrigin
 import os
 import inspect
 import subprocess
 import webbrowser
-pck_path = PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\site-packages"
-sys.path.append(pck_path)
-sys.path.append(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts\CustomModels")
+from orgn_fitter import gl_models_dictionary
+from orgn_fitter import custom_path
+from orgn_fitter import create_params
+#pck_path = PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\site-packages"
+#sys.path.append(pck_path)
+#sys.path.append(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts\CustomModels")
 import shutil
 import ntpath
-from PyQt5.QtCore import Qt
+
+from enum import Enum
+from PyQt5 import QtWidgets
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QIntValidator, QDoubleValidator
 from PyQt5.QtWidgets import QApplication, QSlider, QHBoxLayout, QVBoxLayout, QPushButton, QProgressBar, \
     QComboBox, QAction, QMenuBar, QLabel, QLineEdit, QPushButton, QMessageBox, QGroupBox, QGridLayout, \
@@ -75,8 +81,6 @@ class SettingsDialog(QtWidgets.QDialog):
 
         self.cb = QComboBox()
         self.cb.currentIndexChanged.connect(self.__on_combobox_changed)
-        for model_name in list(gl_models_dictionary):
-            self.cb.addItem(model_name)
         self.current_index = self.cb.findText(settings.model, Qt.MatchFixedString)
         self.cb.setCurrentIndex(self.current_index)
         self.add_button = QPushButton('Add', self)
@@ -126,30 +130,6 @@ class SettingsDialog(QtWidgets.QDialog):
         model_box.addWidget(self.add_button)
         model_box.addWidget(self.add_show_folder)
         model_box.addWidget(self.add_show_help)
-        
-        
-        x_data = parent.wks_wrapper.get_x()
-        all_y_data = parent.wks_wrapper.get_y_data()
-        self.settings.parameters = create_params(self.settings.model, x_data, all_y_data, parent.indexes, self.settings.min_peak_dist)
-        
-        params_box = QHBoxLayout()
-        self.tableWidget = QTableWidget(self)
-        self.tableWidget.setColumnCount(5)
-        self.tableWidget.setRowCount(len(self.settings.parameters))
-        self.tableWidget.setHorizontalHeaderItem(0, QTableWidgetItem("name"));
-        self.tableWidget.setHorizontalHeaderItem(1, QTableWidgetItem("value"));
-        self.tableWidget.setHorizontalHeaderItem(2, QTableWidgetItem("enable(0 or 1"));
-        self.tableWidget.setHorizontalHeaderItem(3, QTableWidgetItem("min"));
-        self.tableWidget.setHorizontalHeaderItem(4, QTableWidgetItem("max"));
-        i = 0
-        for key, param in self.settings.parameters.items():
-            self.tableWidget.setItem(i,0, QTableWidgetItem(key))
-            self.tableWidget.setItem(i,1, QTableWidgetItem("{}".format(self.settings.parameters[key].value)))
-            self.tableWidget.setItem(i,2, QTableWidgetItem("{}".format(self.settings.parameters[key].vary)))
-            self.tableWidget.setItem(i,3, QTableWidgetItem("{}".format(self.settings.parameters[key].min)))
-            self.tableWidget.setItem(i,4, QTableWidgetItem("{}".format(self.settings.parameters[key].max)))
-            i = i + 1
-        params_box.addWidget(self.tableWidget)
 
         # peak detection settings
         peak_detection_group = QGroupBox(self)
@@ -252,6 +232,27 @@ class SettingsDialog(QtWidgets.QDialog):
         button_box.addWidget(self.ok_button)
         button_box.addWidget(self.cancel_button)
 
+        self.initWksSettings()
+        params_box = QHBoxLayout()
+        if self.settings.parameters:
+            self.tableWidget = QTableWidget(self)
+            self.tableWidget.setColumnCount(5)
+            self.tableWidget.setRowCount(len(self.settings.parameters))
+            self.tableWidget.setHorizontalHeaderItem(0, QTableWidgetItem("name"));
+            self.tableWidget.setHorizontalHeaderItem(1, QTableWidgetItem("value"));
+            self.tableWidget.setHorizontalHeaderItem(2, QTableWidgetItem("enable(0 or 1"));
+            self.tableWidget.setHorizontalHeaderItem(3, QTableWidgetItem("min"));
+            self.tableWidget.setHorizontalHeaderItem(4, QTableWidgetItem("max"));
+            i = 0
+            for key, param in self.settings.parameters.items():
+                self.tableWidget.setItem(i,0, QTableWidgetItem(key))
+                self.tableWidget.setItem(i,1, QTableWidgetItem("{}".format(self.settings.parameters[key].value)))
+                self.tableWidget.setItem(i,2, QTableWidgetItem("{}".format(self.settings.parameters[key].vary)))
+                self.tableWidget.setItem(i,3, QTableWidgetItem("{}".format(self.settings.parameters[key].min)))
+                self.tableWidget.setItem(i,4, QTableWidgetItem("{}".format(self.settings.parameters[key].max)))
+                i = i + 1
+            params_box.addWidget(self.tableWidget)
+
         # main layout
         layout = QVBoxLayout()
         layout.addLayout(model_box)
@@ -264,6 +265,19 @@ class SettingsDialog(QtWidgets.QDialog):
 
         self.setWindowTitle("Settings")
         self.setLayout(layout)
+
+
+    def initWksSettings(self):
+        if self.parent.wks_wrapper is None:
+            return
+        for model_name in list(gl_models_dictionary):
+            self.cb.addItem(model_name)
+
+        x_data = self.parent.wks_wrapper.get_x()
+        all_y_data = self.parent.wks_wrapper.get_y_data()
+        self.settings.parameters = create_params(self.settings.model, x_data, all_y_data,
+                                                 self.parent.indexes, self.settings.min_peak_dist)
+
         
     def __add_algr(self):
         self.cur_algorithm_list.addItem(self.algorithm_list.currentItem().text())
@@ -275,7 +289,8 @@ class SettingsDialog(QtWidgets.QDialog):
             self.cur_algorithm_list.takeItem(self.cur_algorithm_list.row(item))
 		
     def __open_help(self):
-        url = "file://" + PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\doc\Built-in Fitting Models in the models module.htm"
+        #url = "file://" + PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\doc\Built-in Fitting Models in the models module.htm"
+        url = "file://" + "..\doc\Built-in Fitting Models in the models module.htm"
         webbrowser.open(url,new=2)
 
     def __add(self):
@@ -297,7 +312,7 @@ class SettingsDialog(QtWidgets.QDialog):
                 self.cb.addItem(model_name)
 
     def __show_folder(self):
-        subprocess.Popen(r'explorer /start, ' + PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts\CustomModels")
+        subprocess.Popen(r'explorer /start, ' + "CustomModels")
 
     def __on_combobox_changed(self, new_index):
         self.current_index = new_index

@@ -1,18 +1,22 @@
+import matplotlib
+
+matplotlib.use('Qt5Agg', force=True)
 import sys
-import PyOrigin
+from orgn_settings import Setting
+from orgn_settings import SettingsDialog
+from orgn_graph_widget import OrgnGrpahWidget
+from orgn_peak_finder import find_peaks
+from orgn_fitter import OrgnFitterThread
+''''import PyOrigin
 # exec(open(r'C:\OriginUserFolder\PyFit\scripts\orgn_fitting_dialog.py').read())
 # append path to packages
 pck_path = PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\site-packages"
 sys.path.append(pck_path)
-sys.path.append(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts")
+sys.path.append(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts")'''''
 
-import math
-import os
-os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = PyOrigin.GetPath(
-    PyOrigin.PATHTYPE_USER) + "PyFit\site-packages\PyQt5\plugins\platforms"
-import matplotlib
+''''os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = PyOrigin.GetPath(
+    PyOrigin.PATHTYPE_USER) + "PyFit\site-packages\PyQt5\plugins\platforms"'''''
 import numpy as np
-matplotlib.use('Qt5Agg', force=True)
 import pickle
 from PyQt5.QtGui import QCursor
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -22,18 +26,47 @@ from PyQt5.QtWidgets import QApplication, QSlider, QHBoxLayout, QVBoxLayout, QPu
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 #from pympler.tracker import SummaryTracker
 
-exec (open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts\orgn_graph_widget.py").read())
+''''exec (open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts\orgn_graph_widget.py").read())
 exec (open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts\orgn_peak_finder.py").read())
 exec (open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts\orgn_fitter.py").read())
-exec (open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts\orgn_settings.py").read())
+exec (open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts\orgn_settings.py").read())'''''
 
 from lmfit.models import GaussianModel
 
 
+
+class WorkSheetWrapper:
+    def __init__(self, x, z, y_data):
+        self._colData = y_data
+        self._x = x
+        self._z = z
+
+    def get_x_from_comments(self):
+        return self._z
+
+    def show_data(self):
+        for data in self._colData:
+            print(data)
+
+    def get_column_num(self):
+        return len(self._colData)
+
+    def get_x(self, markers=None):
+        return self._x
+
+    def get_y_data(self):
+        return self._colData
+
+    def is_empty(self):
+        return len(self._x) is 0 or len(self._z) is 0 or len(self._colData) is 0
+
+
+
 def write(fit_result):
-    fit_result_file = open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + 'PyFit\scripts/fit_result_orgn.txt', 'wb')
-    pickle.dump(fit_result, fit_result_file)
-    fit_result_file.close()
+    i = 0
+    #fit_result_file = open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + 'PyFit\scripts/fit_result_orgn.txt', 'wb')
+    #pickle.dump(fit_result, fit_result_file)
+    #fit_result_file.close()
     ''''fit_params_file = open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + 'PyFit\scripts/fit_params_orgn.txt', 'wb')
     fit_data_file = open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + 'PyFit\scripts/fit_data_orgn.txt', 'wb')
     component_data_file = open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + 'PyFit\scripts/component_data_orgn.txt', 'wb')
@@ -52,10 +85,11 @@ def write(fit_result):
 
 
 def read():
-    fit_result_file = open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + 'PyFit\scripts/fit_result_orgn.txt', 'rb')
-    fit_result = pickle.load(fit_result_file)
-    fit_result_file.close()
-    return fit_result
+    i = 0
+    #fit_result_file = open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + 'PyFit\scripts/fit_result_orgn.txt', 'rb')
+    #fit_result = pickle.load(fit_result_file)
+    #fit_result_file.close()
+    return 0 #fit_result
     ''''fit_params_file = open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + 'PyFit\scripts/fit_params_orgn.txt', 'rb')
     fit_data_file = open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + 'PyFit\scripts/fit_data_orgn.txt', 'rb')
     component_data_file = open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + 'PyFit\scripts/component_data_orgn.txt', 'rb')
@@ -111,12 +145,12 @@ class OrgnToolbar(NavigationToolbar):
         self._actions[callback] = self.addAction(self._icon(image_file), text, callback)
 
 
-class Window(QtWidgets.QDialog):
-    def __init__(self, parent=None):
-        super(Window, self).__init__(parent)
+class Window_fitting(QtWidgets.QDialog):
+    def __init__(self, wks, parent=None):
+        super(Window_fitting, self).__init__(parent)
 
         self.settings = Setting()
-        self.wks_wrapper = WorkSheetWrapper(PyOrigin.WorksheetPages(PyOrigin.ActivePage().GetName()).Layers(0))
+        self.wks_wrapper = wks#WorkSheetWrapper(PyOrigin.WorksheetPages(PyOrigin.ActivePage().GetName()).Layers(0))
         if len(self.wks_wrapper.get_x()) is 0:
             raise ValueError('Worksheet is empty.')
 
@@ -153,7 +187,8 @@ class Window(QtWidgets.QDialog):
 
         ####
         #self.animator = OrgnPlotAnimator(self.wks_wrapper.get_x(), y_dataset, figsize=(20, 20), changed_data_callback=self.on_animtion_changed_data)
-        self.animator = OrgnGrpahWidget(figsize=(20, 20), settings=self.settings, animate_call_back=self.show_data_on_graph_with)
+        self.animator = OrgnGrpahWidget(figsize=(20, 20), settings=self.settings,
+                                        animate_call_back=self.show_data_on_graph_with)
 
         # this is the Canvas Widget that displays the `figure`
         # it takes the `figure` instance as a parameter to __init__
@@ -170,7 +205,8 @@ class Window(QtWidgets.QDialog):
         # this is the Navigation widget
         # it takes the Canvas widget and a parent
         self.toolbar = OrgnToolbar(self.canvas, self)
-        images_path = PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit/res/"
+        #images_path = PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit/res/"
+        images_path = "../res/"
 
         self.toolbar.addSeparator()
         self.toolbar.add_button(images_path + "markers.png", "Add Markers", self.add_markers)
@@ -180,7 +216,7 @@ class Window(QtWidgets.QDialog):
         self.toolbar.addSeparator()
         self.toolbar.add_button(images_path + "crosshairs.png", "Add Peak", self.enable_set_peak)
         self.toolbar.addSeparator()
-        self.toolbar.add_button(images_path + "to_wks.png", "Save result to new table", self.save_result_to_wks)
+        #self.toolbar.add_button(images_path + "to_wks.png", "Save result to new table", self.save_result_to_wks)
         self.toolbar.addSeparator()
         self.toolbar.add_button(images_path + "fit.png", "Fit", self.fit)
         self.toolbar.add_button(images_path + "Last.png", "Load last fit", self.load_last_fit)
@@ -228,7 +264,7 @@ class Window(QtWidgets.QDialog):
         self.find_peaks()
         self.canvas.draw()
 
-    def save_result_to_wks(self):
+    ''''def save_result_to_wks(self):
         result_book = PyOrigin.CreatePage(2, 'Fit data', 'Result', 1)
         fit_data_sheet = WorkSheetWrapper(result_book[0])
         fit_params_sheet = WorkSheetWrapper(result_book.AddLayer("Fit params"))
@@ -254,7 +290,7 @@ class Window(QtWidgets.QDialog):
         for param_name, params in self.last_fit_params.items():
             fit_params_sheet.add_col(num, param_name)
             fit_params_sheet.set_data_column(params, num)
-            num += 1
+            num += 1'''''
 
     def enable_set_peak(self):
         self.can_set_peak = True
@@ -298,8 +334,11 @@ class Window(QtWidgets.QDialog):
         self.animator.show_ver_markers(x[0], x[len(x) - 1], 0, self.max_amplitude)
 
     def find_peaks(self):
-        self.indexes, self.max_amplitude = find_peaks(self.wks_wrapper, self.settings.peak_function, mph=self.settings.min_amplitude,
+        try:
+            self.indexes, self.max_amplitude = find_peaks(self.wks_wrapper, self.settings.peak_function, mph=self.settings.min_amplitude,
                                   mpd=self.settings.min_peak_dist, threshold=self.settings.threshold)
+        except Exception as ex:
+            print(ex)
         self.cb.clear()
         self.is_fir_result_showed = False
         self.cb.setEnabled(False)
@@ -445,7 +484,8 @@ def start_app():
     try:
         app = QApplication(sys.argv)
 
-        main = Window()
+        wks = WorkSheetWrapper([1, 2, 3, 4, 5], [1, 2, 3, 4, 5], [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]])
+        main = Window_fitting(wks)
         main.show()
 
         app.exec_()
@@ -457,7 +497,7 @@ def start_app():
         QMessageBox.about(None, "error", str(inst))
 
 
-if __name__ == '__main__':
-    # tracker = SummaryTracker()
-    start_app()
-    # tracker.print_diff()
+#if __name__ == '__main__':
+    #tracker = SummaryTracker()
+    #start_app()
+    #tracker.print_diff()

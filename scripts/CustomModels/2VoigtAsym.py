@@ -1,6 +1,5 @@
 import lmfit
 import numpy as np
-import PyOrigin
 # Instrukcja dla nowej modeli
 # Zmie? nazw? klasy
 class DoubleVoigtAsym(lmfit.Model):

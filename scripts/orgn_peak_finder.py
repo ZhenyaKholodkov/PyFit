@@ -1,27 +1,32 @@
 import sys
-pck_path = PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\site-packages"
+''''pck_path = PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\site-packages"
 sys.path.append(pck_path)
 octave_path = PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\site-packages\octave_kernel-0.28.3-py3.3.egg"
 sys.path.append(octave_path)
 exec (open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts\WorkSheetWrapper.py").read())
 exec (open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts\detect_peaks.py").read())
-exec (open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts\peakdetect.py").read())
+exec (open(PyOrigin.GetPath(PyOrigin.PATHTYPE_USER) + "PyFit\scripts\peakdetect.py").read())'''''
 
 import matplotlib
 
 matplotlib.use('Qt5Agg', force=True)
+from orgn_settings import PeakFunction
+
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import detect_peaks
 import peakutils
+import numpy as np
 
 from PyQt5.QtCore import pyqtSignal
 
 
 def detect_peaks_with_func(data_set, func, mph, mpd, threshold):
-    if func is PeakFunction.PEAK_DETECTOR:
-        return detect_peaks(data_set, mph=mph, mpd=mpd, threshold=threshold)
-    else:
+    return peakutils.indexes(data_set, thres=threshold, min_dist=mpd)
+    ''''if func is PeakFunction.PEAK_UTILS:
         return peakutils.indexes(data_set, thres=threshold, min_dist=mpd)
+    else:
+        return detect_peaks(data_set, mph=mph, mpd=mpd, threshold=threshold)'''''
 
 
 
@@ -176,11 +181,19 @@ def find_peaks(wks_wrapper, peak_func, mph, mpd, threshold):
     y_data_set = wks_wrapper.get_y_data()
     found_indexes = []
     max_amplitude = 0
+    max_value = 0
     for i, y_data in enumerate(y_data_set):
-        indexes = detect_peaks_with_func(y_data, peak_func, mph, mpd, threshold)
-        max_value = max(y_data[indexes]) if len(indexes) > 0 else 0
-        max_amplitude = max_value if max_value > max_amplitude else max_amplitude
-        found_indexes.append(indexes)
+        try:
+            indexes = peakutils.indexes(y_data, thres=threshold, min_dist=mpd)
+            #indexes = detect_peaks_with_func(y_data, peak_func, mph, mpd, threshold)
+            if len(indexes) > 0:
+                max_value = max([y_data[i] for i in indexes])
+            else:
+                max_value = 0
+            max_amplitude = max_value if max_value > max_amplitude else max_amplitude
+            found_indexes.append(indexes)
+        except Exception as ex:
+            print(ex)
     return found_indexes, max_amplitude
 
 

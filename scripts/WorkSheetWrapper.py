@@ -43,11 +43,11 @@ class ColumnType(Enum):
     ColumnType_Z = 5
     ColumnType_X_Error = 6
 
-class WorkSheetWrapper:
+class WorkSheetWrapper_old:
     @staticmethod
     def create_new_worksheet(new_book, new_page):
         wks = PyOrigin.CreatePage(PyOrigin.PGTYPE_WKS, new_book, new_page, 1)
-        return WorkSheetWrapper(wks.Layers(0))
+        return WorkSheetWrapper_old(wks.Layers(0))
 
     def __init__(self, wks):
         self._workSheet = wks

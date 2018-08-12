@@ -5,17 +5,18 @@ matplotlib.use('Qt5Agg', force=True)
 import csv
 import sys
 import numpy as np
+from orgn_result import ResultVisulizer
+from orgn_graph_widget import OrgnGrpahWidget
 from orgn_settings import Setting
 from orgn_settings import SettingsDialog
 from orgn_fitting_dialog import WorkSheetWrapper
 from orgn_fitting_dialog import Window_fitting
-from orgn_graph_widget import OrgnGrpahWidget
 from orgn_fitter import OrgnFitterThread
 from orgn_peak_finder import find_peaks
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 from PyQt5.QtGui import QKeySequence, QColor, QBrush
 from PyQt5.QtWidgets import QHBoxLayout, QMessageBox, QProgressBar, QMainWindow, QApplication,\
-    QTableWidget, QShortcut, QVBoxLayout, QTableWidgetItem, QPushButton, QFileDialog
+    QTableWidget, QShortcut, QVBoxLayout, QTableWidgetItem, QPushButton, QFileDialog, QSizePolicy
 
 from PyQt5.QtGui import QCursor
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -96,6 +97,8 @@ class FittingApp(QMainWindow, Ui_MainWindow):
         self.plotWidget = OrgnGrpahWidget(figsize=(20, 20), settings=self.settings,
                                         animate_call_back=self.show_data_on_graph_with)
 
+        self.result_visualizer = ResultVisulizer(self.result_table, self.result_layout)
+
         self.canvas = self.plotWidget.get_canvas()
         self.tableWidget.setRowCount(1)
         self.tableWidget.setColumnCount(1)
@@ -132,14 +135,11 @@ class FittingApp(QMainWindow, Ui_MainWindow):
         self.nextBtn.clicked.connect(self.on_next_anim)
         self.anim_slider.valueChanged.connect(self.on_slider_value_changed)
 
-        self.intReultTable()
-
         layout = QVBoxLayout()
         layout.addWidget(self.canvas)
         self.tab_matplot.setLayout(layout)
         self.tab_table.setLayout(self.tableLayout)
         self.tab_result.setLayout(self.result_layout)
-
 
     def show_model_settings(self):
         settings_dlg = SettingsDialog(self.settings, self)
@@ -349,19 +349,7 @@ class FittingApp(QMainWindow, Ui_MainWindow):
     def show_fit_result(self, fit_result):
         self.plotWidget.hide_ver_markers()
         self.last_fit_result = fit_result
-        self.fill_result_table()
-
-    def fill_result_table(self):
-        row = 0
-        for param_name, params in self.last_fit_result.fit_params.items():
-            name_item = QTableWidgetItem()
-            name_item.setText(param_name)
-            self.tableWidget.setItem(0, row, name_item)
-            value_item = QTableWidgetItem()
-            value_item.setText(str(params))
-            self.tableWidget.setItem(0, row, value_item)
-            row += 1
-
+        self.result_visualizer.init_tables_with(self.last_fit_result)
 
     def load_last_fit(self):
         # self.last_fit_result = read()
@@ -370,13 +358,8 @@ class FittingApp(QMainWindow, Ui_MainWindow):
     def openFile(self):
         dialog = QFileDialog()
         dialog.setNameFilters(['CSV (*.csv)'])
-        filename = dialog.getOpenFileName(self, 'Open File', 'C:/OriginUserFolder/PyFit/test_project')
+        filename = dialog.getOpenFileName(self, 'Open File', '../test_project')
         self.loadCsvFile(filename[0])
-
-    def intReultTable(self):
-        self.result_table.setColumnCount(2)
-        labels = "Params;Values"
-        self.result_table.setHorizontalHeaderLabels(labels.split(";"))
 
     def initTable(self, cols, rows):
         self.tableWidget.setRowCount(rows)
@@ -391,11 +374,11 @@ class FittingApp(QMainWindow, Ui_MainWindow):
             labels += ";X({})".format(i)
         self.tableWidget.setVerticalHeaderLabels(labels.split(";"))
 
-    def setTableItem(self, col, row, value, color=QColor(255, 255, 255)):
+    def setTableItem(self, row, col, value, color=QColor(255, 255, 255)):
         item = QTableWidgetItem()
         item.setText(value)
-        self.tableWidget.setItem(col, row, item)
-        self.tableWidget.item(col, row).setBackground(QBrush(color))
+        self.tableWidget.setItem(row, col, item)
+        self.tableWidget.item(row, col).setBackground(QBrush(color))
 
     def loadCsvFile(self, filename):
         with open(filename, newline='') as csvfile:
